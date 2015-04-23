@@ -14,12 +14,9 @@
         #messages li:nth-child(odd) { background: #eee; }
     </style>
     <!-- In our html file, load the socket.io.js script and connect to the socket.io server -->
-
     <script src = "/socket.io/socket.io.js"></script>
     <script src = "http://code.jquery.com/jquery-1.11.1.js"></script>
     <script src = "/insertQuestion.js"></script>
-
-
 </head>
 <body>
 
@@ -32,21 +29,22 @@
         nickname = prompt("What is your nickname?");
         var socket = io(); //it defaults to trying to connect to the host that serves the page.
         socket.emit('join', nickname); // notify the server of the users nickname
-        //        socket.on('question', function(question){ // In our client, listen for 'question' events from the server
-        //            insertQuestion(question);// and call the insertQuestion function whenever the event fires.
-        //        });
-        //
-        //        socket.on('answer', function(question, answer) { // Listen for the 'answer' event off of the server.
-        //            answerQuestion(question, answer); // Call the answerQuestion function, passing in both the question and the answer that was broadcast from the server.
-        //        });
+        socket.on('question', function(question){ // In our client, listen for 'question' events from the server
+            insertQuestion(question);// and call the insertQuestion function whenever the event fires.
+        });
 
-        //        socket.on('connect', function(data) {
-        //            //$('#status').html('Connected to chat room');
-        //            nickname = prompt("What is your nickname?");
-        //            socket.emit('join', nickname); // notify the server of the users nickname
-        //        });
+        socket.on('answer', function(question, answer) { // Listen for the 'answer' event off of the server.
+            answerQuestion(question, answer); // Call the answerQuestion function, passing in both the question and the answer that was broadcast from the server.
+        });
 
-
+//        socket.on('connect', function(data) {
+//            $('#status').html('Connected to chat room');
+//            nickname = prompt("What is your nickname?");
+//            socket.emit('join', nickname); // notify the server of the users nickname
+//        });
+        socket.on('messages', function(msg) {
+            $('#messages').append($('<li>').text(msg));
+        });
 
         $('#chat_form').submit(function() {
             var message = $('#chat_input').val();

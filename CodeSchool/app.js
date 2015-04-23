@@ -43,6 +43,14 @@ app.get('/', function (req, res) {
     // res.send('<h1>Hello World </h1>');
 });
 
+var messages = [];
+var storeMessage = function(name, data) {
+    messages.push({name: name, data: data});
+    if (messages.length > 10) {
+        messages.shift();
+    }
+};
+
 // about socket.io
 io.on('connection', function(client) { // Use the object stored in io to listen for client 'connection' events.
     // Remember, the callback function takes one argument, which is the client object that has connected.
@@ -66,15 +74,17 @@ io.on('connection', function(client) { // Use the object stored in io to listen 
     // sending data on the socket
     client.on('join', function(name) {
        client.nickname = name;  // set the nickname associated with this client
+        messages.forEach(function(msg) {
+           client.emit("messages", msg.name + ": " + msg.data);
+        });
     });
-
-    // sending messages to server
 
     client.on('messages', function (msg) { // listen for 'messages' events
         console.log('message: ' + msg);
         var nickname = client.nickname; // get the nickname of this client before broadcasting message
         client.broadcast.emit("messages", nickname + ": " + msg); // broadcast with the name and message
         client.emit("messages", nickname + ": " + msg); // send the same message back to our client
+        storeMessage(nickname, msg);
     });
 
     client.on('disconnect', function() {
