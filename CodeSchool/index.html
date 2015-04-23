@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <!-- In our html file, load the socket.io.js script and connect to the socket.io server -->
+    <script src = "/node_modules/socket.io/node_modules/socket.io-client/socket.io.js"></script>
+    <script src = "/insertQuestion.js"></script>
+    <script>
+        var socket = io.connect('http://localhost:8080');
+
+        socket.on('question', function(question){ // In our client, listen for 'question' events from the server
+            insertQuestion(question);// and call the insertQuestion function whenever the event fires.
+        });
+
+        server.on('answer', function(question, answer) { // Listen for the 'answer' event off of the server.
+            answerQuestion(question, answer); // Call the answerQuestion function, passing in both the question and the answer that was broadcast from the server.
+        });
+
+
+        socket.on('message', function (data) {
+            alert(data.hello);
+        });
+
+        socket.on('connect', function(data) {
+            $('#status').html('Connected to chattr');
+            nickname = prompt("What is your nickname?");
+
+            socket.emit('join', nickname); // notify the server of the users nickname
+        });
+
+        $('#chat_form').submit(function(e) {
+           var message = $('#chat_input').val();
+            socket.emit('messages', message);// emit the 'message' event on the server
+        });
+    </script>
+    <title>Code School Study</title>
+</head>
+<body>
+
+</body>
+</html>
