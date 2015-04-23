@@ -38,6 +38,11 @@ chat.on('join', function(nickname) {
 chat.emit('join', "hello"); //On the chat object, emit the 'join' event and pass in a custom message as a string.
 chat.emit('message', "world"); // Now emit the 'message' event on the chat object. Just like before, remember to pass in a custom message as a string.
 
+app.get('/', function (req, res) {
+    res.sendFile(__dirname + '/index.html');
+    // res.send('<h1>Hello World </h1>');
+});
+
 // about socket.io
 io.on('connection', function(client) { // Use the object stored in io to listen for client 'connection' events.
     // Remember, the callback function takes one argument, which is the client object that has connected.
@@ -58,26 +63,28 @@ io.on('connection', function(client) { // Use the object stored in io to listen 
         }
     });
 
-    //client.emit('messages', { hello: 'world'});
-
     // sending data on the socket
     client.on('join', function(name) {
        client.nickname = name;  // set the nickname associated with this client
     });
 
     // sending messages to server
-    client.on('messages', function (data) { // listen for 'messages' events
+
+    client.on('messages', function (msg) { // listen for 'messages' events
+        console.log('message: ' + msg);
         var nickname = client.nickname; // get the nickname of this client before broadcasting message
-        client.broadcast.emit("message", nickname + ": " + message); // broadcast with the name and message
-        client.emit("messages", nickname + ": " + message); // send the same message back to our client
+        client.broadcast.emit("messages", nickname + ": " + msg); // broadcast with the name and message
+        client.emit("messages", nickname + ": " + msg); // send the same message back to our client
+    });
+
+    client.on('disconnect', function() {
+        console.log('user disconnected');
     });
 });
 
-app.get('/', function (req, res) {
-    res.sendFile(__dirname + '/index.html');
-});
-
-server.listen(8080); // Finally, we want to tell our http server to listen to requests on port 8080.
+server.listen(8080, function() {
+    console.log('listening on *: 8080');
+}); // Finally, we want to tell our http server to listen to requests on port 8080.
 
 // get data from twitter
 app.get('/tweets/:username', function(req, response) {
