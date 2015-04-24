@@ -1,9 +1,9 @@
 # nodejs-camp
 It's a set of coding works. Skills include Node.js, Express, MongoDB, AngularJS.
 
-# install redis 
+//install redis 
 brew install redis
-# start redis server
+//start redis server
 redis-server
-# shutdown redis client
+//shutdown redis client
 redis-cli shutdown
