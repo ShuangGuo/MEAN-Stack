@@ -19,11 +19,17 @@
     <script src = "/insertQuestion.js"></script>
 </head>
 <body>
-
-    <ul id="messages"></ul>
-    <form action="" id = "chat_form">
-        <input id="chat_input" autocomplete="off" /><button>Send</button>
-    </form>
+    <div>
+        hello
+        <ul id="chatters"></ul>
+        world
+    </div>
+    <div>
+        <ul id="messages"></ul>
+        <form action="" id = "chat_form">
+            <input id="chat_input" autocomplete="off" /><button>Send</button>
+        </form>
+    </div>
     <script>
         //var socket = io.connect('http://localhost:8080');
         nickname = prompt("What is your nickname?");
@@ -41,6 +47,13 @@
 //            $('#status').html('Connected to chat room');
 //            nickname = prompt("What is your nickname?");
 //            socket.emit('join', nickname); // notify the server of the users nickname
+//        });
+        socket.on('add chatter', function(name) {
+            var chatter = $('<li>' + name + '</li>').data('name', name);
+            $('#chatters').append(chatter);
+        });
+//        socket.on('remove chatter', function(name) {
+//            $('#chatters li[data-name='+ name +']').remove();
 //        });
         socket.on('messages', function(msg) {
             $('#messages').append($('<li>').text(msg));

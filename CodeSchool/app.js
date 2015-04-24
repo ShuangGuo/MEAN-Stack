@@ -13,13 +13,15 @@ var app = express();
 var http = require('http'); // Using the http module
 var request = require('request');
 var url = require('url');
+var redis = require('redis');
 var server = http.createServer(app); // create a new http server and pass the express app as the listener for the server.
 var io = require('socket.io')(server); // Using the socket.io module, listen for requests on the http server.
 // Store the return object of this operation in a variable called io.
 var events = require('events');
 var EventEmitter = events.EventEmitter;
-
 var chat = new EventEmitter();
+
+var redisClient = redis.createClient();
 var users = [], chatlog = [];
 
 // highfive is a small case to learn about custom modules.
@@ -44,11 +46,18 @@ app.get('/', function (req, res) {
 });
 
 var messages = [];
+
+
 var storeMessage = function(name, data) {
-    messages.push({name: name, data: data});
-    if (messages.length > 10) {
-        messages.shift();
-    }
+    var message = JSON.stringify({name: name, data: data}); // need to turn object into string to store in redis
+
+    redisClient.lpush("messages", message, function(err, response) {
+        redisClient.ltrim("messages", 0, 9); // keeps newest 10 items
+    });
+    //messages.push({name: name, data: data});
+    //if (messages.length > 10) {
+    //    messages.shift();
+    //}
 };
 
 // about socket.io
@@ -73,10 +82,30 @@ io.on('connection', function(client) { // Use the object stored in io to listen 
 
     // sending data on the socket
     client.on('join', function(name) {
-       client.nickname = name;  // set the nickname associated with this client
-        messages.forEach(function(msg) {
-           client.emit("messages", msg.name + ": " + msg.data);
+        client.nickname = name;  // set the nickname associated with this client
+        //messages.forEach(function(msg) {
+        //    msg = JSON.parse(msg); // parse into JSON object
+        //    client.emit("messages", msg.name + ": " + msg.data);
+        //});
+
+        client.broadcast.emit("add chatter", name); // notify other clients a chatter has joined
+
+        redisClient.lrange("messages", 0, -1, function(err, messages) {
+            messages = messages.reverse(); // reverse so they are emitted in correct order
+            messages.forEach(function(msg) {
+                msg = JSON.parse(msg); // parse into JSON object
+                client.emit("messages", msg.name + ": " + msg.data);
+            });
         });
+
+
+        redisClient.smembers('names', function(err, names) {
+            names.forEach(function(name) {
+               client.emit('add chatter', name); // emit all the currently logged in chatters to the newly connected client
+            });
+        });
+
+        redisClient.sadd("chatters", name); // add name to chatters set
     });
 
     client.on('messages', function (msg) { // listen for 'messages' events
@@ -87,8 +116,12 @@ io.on('connection', function(client) { // Use the object stored in io to listen 
         storeMessage(nickname, msg);
     });
 
-    client.on('disconnect', function() {
-        console.log('user disconnected');
+    // remove chatter when they disconnect from server
+    client.on('disconnect', function(name) {
+        console.log("disconnect...");
+        client.broadcast.emit("remove chatter", name);
+        redisClient.srem("chatters", name);
+
     });
 });
 
