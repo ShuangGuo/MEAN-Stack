@@ -77,6 +77,7 @@ io.on('connection', function(client) { // Use the object stored in io to listen 
             client.broadcast.emit('question', question); // Second, when a client emits a 'question' event, we want to broadcast that question to the other clients.
         // Finally, when a client emits a 'question' event, check to make sure question_asked is not already set to true. We only want to allow one question per user,
         // so make sure that we only set the value of question_asked and broadcast the question to other clients when the value of question_asked is not already true.
+            redisClient.lpush('questions', question);
         }
     });
 
