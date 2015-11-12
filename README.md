@@ -7,3 +7,4 @@ brew install redis
 redis-server
 #shutdown redis client
 redis-cli shutdown
+
