@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html>
-<head lang="en">
+<html lang="en">
+<head>
     <meta charset="UTF-8">
-    <title>Socket.IO chat</title>
+    <title>Let's chat!</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font: 13px Helvetica, Arial; }
@@ -13,16 +13,16 @@
         #messages li { padding: 5px 10px; }
         #messages li:nth-child(odd) { background: #eee; }
     </style>
-    <!-- In our html file, load the socket.io.js script and connect to the socket.io server -->
-    <script src = "/socket.io/socket.io.js"></script>
-    <script src = "http://code.jquery.com/jquery-1.11.1.js"></script>
-    <script src = "/insertQuestion.js"></script>
+    <link rel="stylesheet" href="stylesheets/style.css"/>
+    <script src="https://cdn.socket.io/socket.io-1.3.7.js"></script>
+    <script src="jquery.min.js"></script>
+    <script src="insertQuestion.js"></script>
+    <script src="client.js"></script>
 </head>
 <body>
     <div>
-        hello
         <ul id="chatters"></ul>
-        world
+        <ul class="block-list"></ul>
     </div>
     <div>
         <ul id="messages"></ul>

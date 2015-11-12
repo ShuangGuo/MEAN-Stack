@@ -1,10 +1,9 @@
 # nodejs-camp
-It's a set of coding works. Skills include Node.js, Express, MongoDB, AngularJS.
+It's a MEAN Stack project (Node.js, Express, MongoDB, AngularJS)
 
-#install redis 
-brew install redis
-#start redis server
-redis-server
-#shutdown redis client
-redis-cli shutdown
+# Redis Database
+install redis > brew install redis
+start redis server > redis-server
+shutdown redis client > redis-cli shutdown
+
 

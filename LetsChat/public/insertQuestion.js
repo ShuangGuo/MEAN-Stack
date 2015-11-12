@@ -1,6 +1,3 @@
-/**
- * Created by guest on 4/21/15.
- */
 var insertQuestion = function(question){
     var newQuestion = document.createElement('li');
     newQuestion.innerHTML = question;
