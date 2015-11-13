@@ -15,8 +15,8 @@ var io = require('socket.io')(server);
 var redis = require('redis');
 var redisClient = redis.createClient();
 
-var highfive = require('./public/high_five.js'); // Custom Modules
-highfive();
+var highfive = require('./config/route_index.js')(app);
+highfive(app);
 
 /* socket.io */
 var storeMessage = function(name, data) {
