@@ -1,31 +1,81 @@
+var express = require('express');
 var path = require('path');
 var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
-var express = require('express');
-var app = express();
-var request = require('request');
-var url = require('url');
-var routes = require('./routes/index');
 
+var index = require('./routes/index');
+var blog = require('./routes/blog');
+var chat = require('./routes/chat');
+var event = require('./routes/event');
+var twitter = require('./routes/twitter');
+var user = require('./routes/user');
+/**
+ *  Connect to Database
+ */
+var config = require('./config/db_config');
+var mongoose = require('mongoose');
+var options = {};
+mongoose.connect(config.mongodbURL, options, function (err, res) {
+    if (err) {
+        console.log('Connection refused to ' + config.mongodbURL);
+        console.log(err);
+    } else {
+        console.log('Connection successful to: ' + config.mongodbURL);
+    }
+});
+var redis = require('redis');
+var redisClient = redis.createClient();
+/**
+ * Create Server
+ */
+var app = express();
 var server = require('http').createServer(app);
 var io = require('socket.io')(server);
 
-var redis = require('redis');
-var redisClient = redis.createClient();
+// view engine setup
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
 
-var highfive = require('./config/route_index.js')(app);
-highfive(app);
+// uncomment after placing your favicon in /public
+//app.use(favicon(__dirname + '/public/favicon.ico'));
+app.use(logger('dev'));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname, 'public')));
 
-/* socket.io */
+/**
+ * Define Routes
+ */
+app.all('/*', function(req, res, next) {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Credentials', true);
+    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+    res.set('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Authorization');
+    next();
+});
+app.get('/', function (req, res) {
+    res.render('index');
+});
+//app.use('/api/', index);
+//app.use('/api/blog', blog);
+//app.use('/api/chat', chat);
+//app.use('/api/event', event);
+app.use('/api/twitter', twitter);
+app.use('/api/user', user);
+
+/**
+ * Chat Room
+ */
+
 var storeMessage = function(name, data) {
     var message = JSON.stringify({name: name, data: data}); // need to turn object into string to store in redis
     redisClient.lpush("messages", message, function(err, response) {
         redisClient.ltrim("messages", 0, 9); // keeps newest 10 items
     });
 };
-
 io.on('connection', function(client) {// Remember, the callback function takes one argument, which is the client object that has connected.
     console.log('Client connected...');
     // When a question is submitted to our server, we want to broadcast it out to all the connected clients so they can have a chance to answer it.
@@ -33,8 +83,8 @@ io.on('connection', function(client) {// Remember, the callback function takes o
         if (!client.question_asked) {
             client.question_asked = true;
             client.broadcast.emit('question', question);
-        // Finally, when a client emits a 'question' event, check to make sure question_asked is not already set to true. We only want to allow one question per user,
-        // so make sure that we only set the value of question_asked and broadcast the question to other clients when the value of question_asked is not already true.
+            // Finally, when a client emits a 'question' event, check to make sure question_asked is not already set to true. We only want to allow one question per user,
+            // so make sure that we only set the value of question_asked and broadcast the question to other clients when the value of question_asked is not already true.
             redisClient.lpush('questions', question);
         }
     });
@@ -53,84 +103,28 @@ io.on('connection', function(client) {// Remember, the callback function takes o
         });
         redisClient.smembers('names', function(err, names) {
             names.forEach(function(name) {
-               client.emit('add chatter', name); // emit all the currently logged in chatters to the newly connected client
+                client.emit('add chatter', name); // emit all the currently logged in chatters to the newly connected client
             });
         });
 
         redisClient.sadd("chatters", name); // add name to chatters set
     });
     client.on('messages', function (msg) {
-        console.log('messages: ' + msg);
         var nickname = client.nickname;
         client.broadcast.emit("messages", nickname + ": " + msg);
         client.emit("messages", nickname + ": " + msg); // send the same message back to our client
         storeMessage(nickname, msg);
     });
     client.on('disconnect', function(name) {
-        console.log("disconnect...");
+        console.log("user: "+ name +" disconnected");
         client.broadcast.emit("remove chatter", name);
         redisClient.srem("chatters", name);
     });
 });
 
-app.get('/', function (req, res) {
-    res.sendFile(__dirname + '/public/index.html');
-}); //app.use(express.static('public'));
 
 
-server.listen(8080, function() {
-    console.log('listening on *: 8080');
-});
 
-/* get data from twitter LV5*/
-app.get('/tweets/:username', function(req, response) {
-   var username = req.params.username;
-    options = {
-        protocol: "https:",
-        host: 'api.twitter.com',
-        pathname: '/1.1/statuses/user_timeline.json',
-        query: {screen_name: username, count: 10} // get the last 10 tweets for screen_name
-    };
-    var twitterUrl = url.format(options);
-    console.log(twitterUrl);
-    request(twitterUrl).pipe(response); //In our new route, issue a request to twitterUrl and pipe the results into the response.
-    request(twitterUrl, function(err, res, body) {
-        var tweets = JSON.parse(body);
-        response.locals = {tweets: tweets, name: username};
-        response.render('tweets.ejs');
-    });
-});
-
-/* how to show quotes by name */
-var quotes = {
-    'einstein': 'Life is like riding a bicycle. To keep your balance you must keep moving',
-    'berners-lee': 'The Web does not just connect machines, it connects people',
-    'crockford': 'The good thing about reinventing the wheel is that you can get a round one',
-    'hofstadter': 'Which statement seems more true: (1) I have a brain. (2) I am a brain.'
-};
-app.get('/quotes/:name', function(req, res) { // http://localhost:8080/quotes/einstein
-    var name = req.params.name;
-    var quote = quotes[name];
-    res.render("quotes.ejs", {
-        name: name,
-        quote: quote
-    });
-});
-
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
-
-// uncomment after placing your favicon in /public
-//app.use(favicon(__dirname + '/public/favicon.ico'));
-app.use(logger('dev'));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
-
-//app.use('/', routes);
-//app.use('/users', users);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -162,6 +156,5 @@ app.use(function(err, req, res, next) {
     error: {}
   });
 });
-
 
 module.exports = app;
